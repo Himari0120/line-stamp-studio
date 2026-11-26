@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>LINEスタンプメーカー</title>
+<style>
+body{margin:0;font-family:sans-serif;background:#0f172a;color:#fff;padding:16px 16px 84px}
+.tabs{display:flex;gap:6px;margin-bottom:12px}
+.tab{flex:1;padding:10px 4px;border:none;border-radius:8px;background:#334155;color:#fff;font-weight:bold}
+.tab.on{background:#06c755}
+.box{background:#1e293b;padding:14px;border-radius:12px;margin-bottom:12px}
+.panel{display:none}
+.panel.on{display:block}
+canvas{display:block;width:100%;max-width:340px;margin:0 auto;border-radius:8px}
+.bg-light{background:#f8fafc}
+.bg-dark{background:#111827}
+.btn{padding:10px 14px;border:none;border-radius:8px;background:#06c755;color:#fff;font-weight:bold;font-size:15px}
+.btn2{padding:10px 14px;border:none;border-radius:8px;background:#475569;color:#fff;font-weight:bold;font-size:15px}
+.bar{position:fixed;left:0;right:0;bottom:0;background:#0f172a;padding:10px 16px;display:flex;justify-content:space-between;border-top:1px solid #334155}
+input[type="file"],input[type="text"],select{width:100%;padding:10px;margin-top:8px;border-radius:8px;border:none;font-size:16px;box-sizing:border-box}
+input[type="range"]{width:100%;margin-top:8px}
+.chk{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:15px}
+</style>
+</head>
+<body>
+<h3>LINEスタンプメーカー</h3>
+
+<div class="tabs">
+  <button type="button" class="tab on" id="tab1" onclick="go(1)">1.画像</button>
+  <button type="button" class="tab" id="tab2" onclick="go(2)">2.動き</button>
+  <button type="button" class="tab" id="tab3" onclick="go(3)">3.文字</button>
+  <button type="button" class="tab" id="tab4" onclick="go(4)">4.保存</button>
+</div>
+
+<div class="box">
+  <canvas id="cv" width="340" height="280" class="bg-light"></canvas>
+  <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+    <button type="button" class="btn2" onclick="toggleBg()">プレビュー背景 白/黒</button>
+  </div>
+  <p id="info" style="color:#34d399;margin:8px 0 0">ステップ1：画像を選んでください</p>
+</div>
+
+<div class="box panel on" id="p1">
+  <label>画像を選ぶ</label>
+  <input type="file" accept="image/*" onchange="loadPic(this)">
+  <label class="chk">
+    <input type="checkbox" id="keyOn" checked onchange="makeKey()">
+    <span>左上（角）と同じ背景色を自動透過する</span>
+  </label>
+  <label style="display:block;margin-top:12px">透過の強さ: <span id="tolLbl">50</span>
+    <input type="range" id="tolR" min="0" max="160" value="50" oninput="setTol(this.value)">
+  </label>
+</div>
+
+<div class="box panel" id="p2">
+  <label>動きを選ぶ</label>
+  <select id="act" onchange="actMode=this.value">
+    <option value="bounce">ぴょん跳ね</option>
+    <option value="float">ふわふわ</option>
+    <option value="swing">ゆらゆら</option>
+  </select>
+</div>
+
+<div class="box panel" id="p3">
+  <label>セリフを入れる</label>
+  <input type="text" id="say" value="おはよう！" oninput="sayText=this.value">
+</div>
+
+<div class="box panel" id="p4">
+  <button type="button" class="btn" onclick="savePng()">今の画像をPNG保存</button>
+</div>
+
+<div class="bar">
+  <button type="button" class="btn2" onclick="go(cur>1?cur-1:4)">← 前へ</button>
+  <button type="button" class="btn" onclick="go(cur<4?cur+1:1)">次へ →</button>
+</div>
+
+<script>
+var cur=1, pic=null, keyPic=null, t=0, actMode="bounce", sayText="おはよう！", tolVal=50, darkBg=false;
+function go(n){
+  cur=n;
+  for(var i=1;i<=4;i++){
+    document.getElementById("tab"+i).className=(i===n)?"tab on":"tab";
+    document.getElementById("p"+i).className=(i===n)?"box panel on":"box panel";
+  }
+  document.getElementById("info").textContent="ステップ"+n+"を表示中";
+}
+function toggleBg(){
+  darkBg=!darkBg;
+  document.getElementById("cv").className=darkBg?"bg-dark":"bg-light";
+}
+function makeKey(){
+  if(!pic){keyPic=null;return;}
+  var on=document.getElementById("keyOn").checked;
+  if(!on){keyPic=null;document.getElementById("info").textContent="透過OFFで表示中";return;}
+  try{
+    var off=document.createElement("canvas");
+    off.width=pic.naturalWidth||pic.width;
+    off.height=pic.naturalHeight||pic.height;
+    var o=off.getContext("2d");
+    o.drawImage(pic,0,0);
+    var id=o.getImageData(0,0,off.width,off.height), d=id.data;
+    var r=d[0], g=d[1], b=d[2], lim=Number(tolVal), hit=0;
+    for(var i=0;i<d.length;i+=4){
+      if(Math.abs(d[i]-r)<=lim && Math.abs(d[i+1]-g)<=lim && Math.abs(d[i+2]-b)<=lim){
+        d[i+3]=0;
+        hit++;
+      }
+    }
+    o.putImageData(id,0,0);
+    keyPic=off;
+    var pct=Math.round((hit/(d.length/4))*100);
+    document.getElementById("info").textContent="透過処理完了（約"+pct+"%のピクセルを透過）";
+  }catch(err){
+    keyPic=null;
+    document.getElementById("info").textContent="透過できませんでした（画像制限の可能性）: "+err.message;
+  }
+}
+function setTol(v){
+  tolVal=Number(v);
+  document.getElementById("tolLbl").textContent=v;
+  makeKey();
+}
+function loadPic(inp){
+  if(!inp.files||!inp.files[0])return;
+  var f=inp.files[0], r=new FileReader();
+  r.onload=function(e){
+    var im=new Image();
+    im.onload=function(){
+      pic=im;
+      makeKey();
+      if(!keyPic){
+        document.getElementById("info").textContent="読み込みOK（元画像を表示）: "+f.name;
+      }
+    };
+    im.src=e.target.result;
+  };
+  r.readAsDataURL(f);
+}
+function savePng(){
+  var cv=document.getElementById("cv"), a=document.createElement("a");
+  a.href=cv.toDataURL("image/png");
+  a.download="stamp.png";
+  a.click();
+  document.getElementById("info").textContent="PNGを保存しました";
+}
+function loop(){
+  var cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+  ctx.clearRect(0,0,cv.width,cv.height);
+  t+=0.1;
+  var dx=0, dy=0, rot=0;
+  if(actMode==="bounce") dy=-Math.abs(Math.sin(t))*14;
+  if(actMode==="float") dy=Math.sin(t)*10;
+  if(actMode==="swing") rot=Math.sin(t)*0.2;
+  var showPic=keyPic||pic;
+  if(showPic){
+    var sz=140, ra=showPic.width/(showPic.height||1), w=ra>=1?sz:sz*ra, h=ra>=1?sz/ra:sz;
+    ctx.save();
+    ctx.translate(170+dx, 125+dy);
+    ctx.rotate(rot);
+    ctx.drawImage(showPic, -w/2, -h/2, w, h);
+    ctx.restore();
+  }else{
+    ctx.fillStyle="#64748b";
+    ctx.font="bold 14px sans-serif";
+    ctx.textAlign="center";
+    ctx.fillText("1.画像 から画像を選んでね", 170, 130);
+  }
+  if(sayText){
+    ctx.save();
+    ctx.font="bold 26px sans-serif";
+    ctx.textAlign="center";
+    ctx.lineWidth=5;
+    ctx.strokeStyle="#fff";
+    ctx.strokeText(sayText, 170, 255);
+    ctx.fillStyle=darkBg?"#ffffff":"#0f172a";
+    ctx.fillText(sayText, 170, 255);
+    ctx.restore();
+  }
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>
