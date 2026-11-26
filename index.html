@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>LINE 40-Stamp Motion Studio</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #1e293b;
+      --panel-light: #334155;
+      --accent: #06c755;
+      --accent-hover: #05b34c;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --border: #334155;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      padding-bottom: 72px;
+    }
+    header {
+      background: var(--panel);
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    header h1 {
+      font-size: 0.98rem;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .badge {
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.68rem;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-weight: bold;
+    }
+
+    /* ウィザード・ステップバー */
+    .stepper {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      padding: 8px 10px;
+      background: #131c31;
+      border-bottom: 1px solid var(--border);
+    }
+    .step-tab {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 4px;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: 0.15s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    .step-tab .step-num {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      line-height: 18px;
+      border-radius: 50%;
+      background: var(--panel-light);
+      color: var(--text);
+      font-size: 0.68rem;
+    }
+    .step-tab.active {
+      border-color: var(--accent);
+      background: #064e3b;
+      color: #fff;
+    }
+    .step-tab.active .step-num {
+      background: var(--accent);
+      color: #fff;
+    }
+    .step-tab.done .step-num {
+      background: #10b981;
+      color: #fff;
+    }
+
+    /* メインレイアウト */
+    .main-container {
+      max-width: 960px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 12px;
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+    @media (max-width: 860px) {
+      .main-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* 常時表示プレビューカード */
+    .preview-card {
+      background: #090d16;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      position: sticky;
+      top: 8px;
+      z-index: 10;
+    }
+    @media (max-width: 860px) {
+      .preview-card {
+        position: relative;
+        top: 0;
+      }
+    }
+    .canvas-checker {
+      background-image:
+        linear-gradient(45deg, #cbd5e1 25%, transparent 25%),
+        linear-gradient(-45deg, #cbd5e1 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #cbd5e1 75%),
+        linear-gradient(-45deg, transparent 75%, #cbd5e1 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+      background-color: #f1f5f9;
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      line-height: 0;
+      touch-action: none;
+    }
+    canvas {
+      max-width: 100%;
+      height: auto;
+      cursor: grab;
+      touch-action: none;
+    }
+
+    /* ステップパネル */
+    .wizard-panel {
+      display: none;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      flex-direction: column;
+      gap: 12px;
+      animation: fadeIn 0.2s ease;
+    }
+    .wizard-panel.active {
+      display: flex;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .step-header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+    }
+    .step-header h2 {
+      font-size: 1rem;
+      margin: 0
+    .step-header p { font-size: 0.8rem; color: var(--muted); margin: 0; }
+    .control-row { display: flex; flex-direction: column; gap: 6px; }
+    .control-row label { font-size: 0.82rem; font-weight: 600; display: flex; justify-content: space-between; }
+    input[type="file"], input[type="text"], input[type="number"], select {
+      width: 100%; padding: 8px 10px; border-radius: 8px;
+      border: 1px solid var(--border); background: #0f172a; color: var(--text); font-size: 0.88rem;
+    }
+    input[type="range"] { width: 100%; accent-color: var(--accent); }
+    .btn {
+      padding: 10px 14px; border-radius: 8px; border: none; font-weight: 700;
+      font-size: 0.88rem; cursor: pointer; background: var(--panel-light); color: var(--text);
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .slot-list {
+      max-height: 340px; overflow-y: auto; display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px;
+    }
+    .slot-item {
+      background: #0f172a; border: 1px solid var(--border); border-radius: 8px;
+      padding: 8px; display: flex; flex-direction: column; gap: 6px;
+    }
+    .slot-item.selected { border-color: var(--accent); background: #062e1e; }
+    .slot-num { font-size: 0.72rem; color: var(--muted); font-weight: 700; }
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0; background: #0f172a;
+      border-top: 1px solid var(--border); padding: 10px 14px;
+      display: flex; justify-content: space-between; gap: 10px; z-index: 20;
+    }
+    .status-msg { font-size: 0.8rem; color: #34d399; min-height: 1.2em; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1 id="appTitle">
+      <span id="titleText">LINE 40-Stamp Motion Studio</span>
+      <span class="badge" id="badgeText">ステップ式ウィザード</span>
+    </h1>
+  </header>
+  <nav class="stepper" id="stepper">
+    <button type="button" class="step-tab active" data-step="1">1. 画像・透過</button>
+    <button type="button" class="step-tab" data-step="2">2. 配置・動き</button>
+    <button type="button" class="step-tab" data-step="3">3. 40セリフ</button>
+    <button type="button" class="step-tab" data-step="4">4. 連番書き出し</button>
+  </nav>
+  <main class="main-container">
+    <section class="preview-card">
+      <div class="canvas-checker">
+        <canvas id="studioCanvas" width="370" height="320"></canvas>
+      </div>
+      <div class="hint">ドラッグで位置調整</div>
+      <div class="btn-row">
+        <button type="button" class="btn" id="togglePlayBtn">再生 / 一時停止</button>
+        <button type="button" class="btn" id="resetPosBtn">位置リセット</button>
+      </div>
+      <div class="status-msg" id="statusMsg"></div>
+    </section>
+    <section class="wizard-panel active" id="panel-1">
+      <div class="step-header"><h2>Step 1: 画像読み込み＆背景透過</h2><p>画像を選び、背景色を透過します。</p></div>
+      <div class="control-row"><label for="imageInput">元画像を選択</label><input type="file" id="imageInput" accept="image/*" /></div>
+      <div class="control-row"><label><input type="checkbox" id="enableKeying" checked /> 角の色を自動透過する</label></div>
+      <div class="control-row"><label for="toleranceRange">許容値: <span id="toleranceVal">35</span></label><input type="range" id="toleranceRange" min="0" max="140" value="35" /></div>
+      <div class="control-row"><label><input type="checkbox" id
